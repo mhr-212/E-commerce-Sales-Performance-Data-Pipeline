@@ -1,4 +1,4 @@
-# 🛒 E-commerce Sales Performance Data Pipeline
+# E-commerce Sales Performance Data Pipeline
 
 ![CI](https://github.com/<your-username>/ecommerce_pipeline/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11-blue?logo=python)
@@ -7,35 +7,34 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tests](https://img.shields.io/badge/tests-49%20passing-brightgreen)
 
-A **production-grade, end-to-end ETL pipeline** for analysing 5 years of e-commerce transactions
-using dimensional modeling, Apache Airflow orchestration, and PostgreSQL.
+End-to-end ETL pipeline that processes 5 years of e-commerce transactions (~5M rows) using a star schema in PostgreSQL, orchestrated daily with Apache Airflow, and fully containerised with Docker.
 
 ---
 
-## Architecture
+## How it works
 
 ```mermaid
 flowchart TD
-    subgraph Source["📁 Source (CSV Files)"]
+    subgraph Source["Source — CSV Files"]
         CSV["data/raw/sales_YYYY_MM.csv"]
     end
 
-    subgraph ETL["🐍 ETL Layer (Python)"]
-        E["extract.py\nSchema validation (pandera)\nDead-letter routing"]
-        T["transform.py\nFinancial metrics derivation\nSurrogate key resolution\nRow checksums"]
-        L["load.py\nIdempotent UPSERT\n10k-row chunks\nAudit logging"]
+    subgraph ETL["ETL Layer — Python"]
+        E["extract.py\nPandera validation + dead-letter routing"]
+        T["transform.py\nMetrics derivation + surrogate key resolution"]
+        L["load.py\nIdempotent UPSERT — 10k-row chunks"]
     end
 
-    subgraph DW["🗄️ Data Warehouse (PostgreSQL 15)"]
-        DimDate["dim_date\n(calendar, 2019-2025)"]
-        DimProd["dim_product\n(SCD Type-2)"]
+    subgraph DW["Data Warehouse — PostgreSQL 15"]
+        DimDate["dim_date"]
+        DimProd["dim_product — SCD Type-2"]
         DimCust["dim_customer"]
-        Fact["fact_sales\n(partitioned by month)\n~5M rows"]
-        Mart["mart_daily_sales\n(materialized view)"]
+        Fact["fact_sales\npartitioned by month — 5M rows"]
+        Mart["mart_daily_sales\nmaterialized view"]
         Audit["pipeline_audit_log"]
     end
 
-    subgraph Airflow["🌬️ Apache Airflow 2.9"]
+    subgraph Airflow["Orchestration — Apache Airflow 2.9"]
         direction LR
         S([start]) --> Ex[extract] --> VE[validate_extract]
         VE --> Tr[transform] --> Lo[load]
@@ -61,26 +60,29 @@ ecommerce_pipeline/
 ├── Dockerfile                  # Custom Airflow image
 ├── requirements.txt
 ├── .env.example
-├── init_db.py                  # Schema bootstrap (non-Docker dev)
+├── init_db.py                  # Schema bootstrap (without Docker)
 │
 ├── sql/
 │   ├── 01_create_schema.sql    # Star schema + partitions + audit table
 │   ├── 02_seed_dim_date.sql    # Calendar dimension (2019-2025)
-│   └── init_pg.sh              # Postgres container init script
+│   └── init_pg.sh              # Postgres init script
 │
 ├── etl/
-│   ├── generate_data.py        # 5M+ row synthetic generator
+│   ├── generate_data.py        # Synthetic data generator (~5M rows)
 │   ├── extract.py              # CSV → validated DataFrame
-│   ├── transform.py            # Cleanse → derive → resolve keys
+│   ├── transform.py            # Cleanse → derive metrics → resolve keys
 │   ├── load.py                 # Idempotent UPSERT to PostgreSQL
 │   └── utils/
-│       ├── db.py               # SQLAlchemy pool
+│       ├── db.py               # SQLAlchemy connection pool
 │       ├── logger.py           # Structured JSON logger
 │       └── metrics.py          # Checksums + audit writer
 │
 ├── dags/
 │   ├── sales_pipeline.py       # Daily DAG (main pipeline)
-│   └── backfill_dag.py         # On-demand historical backfill
+│   └── backfill_dag.py         # Historical backfill DAG
+│
+├── dashboard/
+│   └── app.py                  # Streamlit dashboard
 │
 ├── data/
 │   ├── raw/                    # Generated CSVs (git-ignored)
@@ -88,52 +90,33 @@ ecommerce_pipeline/
 │
 └── tests/
     ├── conftest.py             # Shared fixtures
-    ├── test_transform.py       # 15 unit tests
-    ├── test_load.py            # 8 integration tests (SQLite)
-    ├── test_dag.py             # 12 DAG integrity tests
-    └── test_data_quality.py    # 14 data quality tests
+    ├── test_transform.py       # Unit tests
+    ├── test_load.py            # Integration tests (SQLite)
+    ├── test_dag.py             # DAG integrity tests
+    └── test_data_quality.py    # Data quality tests
 ```
 
 ---
 
-## 📊 Streamlit Dashboard
-
-An interactive showcase dashboard is included for demos and LinkedIn:
-
-```bash
-streamlit run dashboard/app.py
-# → Opens at http://localhost:8501
-```
-
-**4 pages:**
-| Page | Content |
-|------|---------|
-| 📊 Overview | KPI metrics, revenue trend, category breakdown, top 10 products |
-| 📈 Revenue Analytics | Monthly heatmap, YoY comparison, category area chart, SQL samples |
-| 🗂️ Pipeline Health | 30-run audit log, SLA duration chart, test results |
-| 🏗️ Architecture | Airflow DAG flow, star schema diagram, innovation highlights |
-
 ## Quick Start
 
-### Prerequisites
-- Docker Desktop ≥ 4.x
-- Docker Compose v2
+**Prerequisites:** Docker Desktop ≥ 4.x, Docker Compose v2
 
-### 1. Clone & configure
+### 1. Clone and configure
 
 ```bash
 git clone <repo-url> ecommerce_pipeline
 cd ecommerce_pipeline
 cp .env.example .env
-# Edit .env and set your AIRFLOW__CORE__FERNET_KEY (see .env.example for instructions)
+# Edit .env — set AIRFLOW__CORE__FERNET_KEY (instructions are in .env.example)
 ```
 
-### 2. Generate synthetic data
+### 2. Generate data
 
 ```bash
 pip install -r requirements.txt
 python -m etl.generate_data --start 2020-01-01 --end 2024-12-31
-# → Writes ~60 CSV files to data/raw/ (~5M rows total, ~2-5 min)
+# Writes ~60 CSV files to data/raw/ (~5M rows, takes 2-5 min)
 ```
 
 ### 3. Start the stack
@@ -142,34 +125,45 @@ python -m etl.generate_data --start 2020-01-01 --end 2024-12-31
 docker compose up -d
 ```
 
-Wait ~60 seconds for Airflow to initialise, then open:
+Give it ~60 seconds to initialise, then open:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | Airflow UI | http://localhost:8080 | airflow / airflow |
 | PostgreSQL | localhost:5432 | pipeline / pipeline |
 
-### 4. Run the pipeline
+### 4. Trigger the pipeline
 
-**Via Airflow UI**: Enable `sales_etl` DAG → trigger manually  
-**Via CLI**:
+Via UI: enable the `sales_etl` DAG and trigger it manually.
+
+Via CLI:
 ```bash
 docker compose exec airflow-scheduler \
   airflow dags trigger sales_etl --exec-date 2024-01-01
 ```
 
-### 5. Run the full test suite (no Docker needed)
+### 5. Run tests (no Docker needed)
 
 ```bash
-pip install -r requirements.txt
-pytest tests/ -v --tb=short --ignore=tests/test_dag.py
-# Include DAG tests only if airflow is installed:
-pytest tests/ -v --tb=short
+pytest tests/ -v --ignore=tests/test_dag.py
+
+# With coverage
+pytest tests/ -v --cov=etl --cov-report=term-missing --ignore=tests/test_dag.py
+
+# Full suite (requires Airflow installed)
+pytest tests/ -v
+```
+
+### 6. Dashboard
+
+```bash
+streamlit run dashboard/app.py
+# Opens at http://localhost:8501
 ```
 
 ---
 
-## Airflow DAG: `sales_etl`
+## Airflow DAG
 
 ```
 start → extract → validate_extract → transform → load → validate_load → refresh_mart → cleanup → end
@@ -177,20 +171,19 @@ start → extract → validate_extract → transform → load → validate_load 
 
 | Task | Retries | Timeout | Notes |
 |------|---------|---------|-------|
-| `extract` | 3 | 30 min | Reads CSV, pandera validation |
+| `extract` | 3 | 30 min | CSV read + Pandera validation |
 | `validate_extract` | 0 | 5 min | Row count + uniqueness checks |
-| `transform` | 3 | 45 min | Derives metrics, resolves keys |
+| `transform` | 3 | 45 min | Metrics derivation + surrogate key resolution |
 | `load` | 3 | 30 min | Chunked UPSERT (10k rows/chunk) |
-| `validate_load` | 0 | 10 min | SUM(net_amount) parity check |
-| `refresh_mart` | 1 | 15 min | REFRESH MATERIALIZED VIEW |
-| `cleanup` | 0 | 5 min | Removes temp Parquet files |
+| `validate_load` | 0 | 10 min | SUM(net_amount) parity check (0.1% tolerance) |
+| `refresh_mart` | 1 | 15 min | REFRESH MATERIALIZED VIEW CONCURRENTLY |
+| `cleanup` | 0 | 5 min | Removes temp Parquet staging files |
 
-SLA for full run: **2 hours**  
-`cleanup` uses `trigger_rule="all_done"` so temp files are removed even on failure.
+SLA: **2 hours** for a full daily run. The `cleanup` task uses `trigger_rule="all_done"` so staging files are cleared even if something upstream fails.
 
 ---
 
-## Dimensional Model
+## Data Model
 
 ```
                     ┌─────────────┐
@@ -207,14 +200,13 @@ SLA for full run: **2 hours**
                     └──────────────────────────┘
 ```
 
-**Key design decisions:**
-- `fact_sales` is **range-partitioned by `sale_date`** (one partition per month) for efficient date-range queries and partition pruning
-- `UPSERT` uses `WHERE fact_sales.row_checksum != EXCLUDED.row_checksum` — rows are only written if they actually changed
-- `dim_product` is SCD Type-2 with `valid_from / valid_to` columns for historical price tracking
+- `fact_sales` is range-partitioned by month — date-range queries skip 90%+ of partitions automatically
+- UPSERT uses `WHERE row_checksum != EXCLUDED.row_checksum` — re-running on the same data is a no-op
+- `dim_product` is SCD Type-2 with `valid_from / valid_to` to track price changes without rewriting history
 
 ---
 
-## Analytics Queries (Samples)
+## Sample Queries
 
 ```sql
 -- Top 10 products by revenue (last 90 days)
@@ -229,14 +221,14 @@ GROUP  BY 1, 2
 ORDER  BY revenue DESC
 LIMIT  10;
 
--- Daily revenue trend (materialized mart)
+-- Daily revenue from the materialized mart
 SELECT full_date, category, SUM(revenue) AS daily_revenue
 FROM   mart_daily_sales
 WHERE  full_date >= '2024-01-01'
 GROUP  BY full_date, category
 ORDER  BY full_date;
 
--- Pipeline health check
+-- Pipeline run history
 SELECT run_date, stage, status, rows_processed,
        duration_secs, source_checksum IS NOT NULL AS checksummed
 FROM   pipeline_audit_log
@@ -258,55 +250,46 @@ docker compose exec airflow-scheduler \
 
 ## Error Handling
 
-| Scenario | Behaviour |
-|----------|-----------|
-| Invalid CSV row | Quarantined to `data/dead_letter/` with `_error` annotation |
-| DB connection drop | SQLAlchemy reconnects via `pool_pre_ping`; Airflow retries task |
-| Transform rule violation | Row dropped + counted in audit log `rows_rejected` |
-| Load failure mid-chunk | Full transaction rolled back; no partial writes |
-| Sum divergence >0.1% | `validate_load` raises `AssertionError`; DAG fails |
-| Audit log write failure | Non-fatal; logged to stderr; pipeline continues |
+| Scenario | What happens |
+|----------|-------------|
+| Invalid CSV row | Quarantined to `data/dead_letter/` with `_error` annotation — never silently dropped |
+| DB connection drop | SQLAlchemy reconnects via `pool_pre_ping`; Airflow retries the task |
+| Transform rule violation | Row dropped and counted in `rows_rejected` in the audit log |
+| Load failure mid-chunk | Full transaction rolled back — no partial writes |
+| Sum divergence > 0.1% | `validate_load` raises `AssertionError` and the DAG fails |
+| Audit log write failure | Non-fatal — logged to stderr, pipeline continues |
 
 ---
 
 ## Testing
 
-```bash
-# All tests excluding DAG (no airflow install needed)
-pytest tests/ -v --ignore=tests/test_dag.py
+49 tests, 2.33 seconds.
 
-# With coverage report
-pytest tests/ -v --cov=etl --cov-report=term-missing --ignore=tests/test_dag.py
-
-# Full suite (requires airflow installed)
-pytest tests/ -v
-```
-
-| Test File | Tests | Coverage Area |
-|-----------|-------|---------------|
-| `test_transform.py` | 15 | Financial math, dtype normalisation, checksums |
-| `test_load.py` | 8 | Idempotency, UPSERT, validate_load gate |
-| `test_dag.py` | 12 | Task count, dependencies, retry config |
+| File | Tests | What it covers |
+|------|-------|----------------|
+| `test_transform.py` | 15 | Financial math, dtype normalisation, row checksums |
+| `test_load.py` | 8 | Idempotency, UPSERT behaviour, validate_load gate |
+| `test_dag.py` | 12 | Task count, dependency order, retry config |
 | `test_data_quality.py` | 14 | Invariants, referential integrity, variance guard |
 
 ---
 
 ## Monitoring
 
-- **Airflow UI** → DAG runs, task logs, SLA misses
-- **`pipeline_audit_log`** → per-task metrics: rows, duration, checksums
-- **dead_letter directory** → file count indicates schema drift or upstream issues
+- **Airflow UI** — DAG run history, task logs, SLA misses
+- **`pipeline_audit_log`** — per-task row counts, durations, and checksums
+- **`data/dead_letter/`** — any files here mean bad rows reached the extract stage; worth investigating
 
 ---
 
-## Innovation Highlights
+## Design Decisions
 
-| Feature | Details |
-|---------|---------|
-| **Dead-letter routing** | Invalid rows are quarantined (not silently dropped) with error annotation |
-| **Checksum-gated UPSERT** | Rows only written if `row_checksum` changed — zero spurious I/O on re-runs |
-| **Pandera schema contracts** | Schema violations surface immediately at extract, not silently downstream |
-| **Contextvar logging** | `run_id`, `task_id`, `dag_id` are injected into every log line for correlation |
-| **Materialized view mart** | `mart_daily_sales` is refreshed `CONCURRENTLY` — no query downtime |
-| **Monthly partitioning** | Queries against recent data prune 90%+ of partitions automatically |
-| **SCD Type-2 products** | Historical price changes tracked without losing past sale accuracy |
+| Decision | Why |
+|----------|-----|
+| Checksum-gated UPSERT | Rows only written if `row_checksum` changed — zero I/O on re-runs |
+| Pandera schema contracts | Schema violations caught at the extract boundary, not three steps later in the warehouse |
+| Dead-letter routing | Rejected rows are annotated and quarantined, not just counted |
+| ContextVar logging | Every log line carries `run_id`, `task_id`, `dag_id` for distributed trace correlation |
+| Concurrent mart refresh | `REFRESH MATERIALIZED VIEW CONCURRENTLY` — no read downtime during refresh |
+| Monthly partitioning | PostgreSQL prunes partitions aggressively on date-range queries |
+| SCD Type-2 products | Price changes tracked over time without corrupting historical revenue figures |
