@@ -1,0 +1,70 @@
+# ============================================================
+# E-commerce Sales Pipeline — .gitignore
+# ============================================================
+
+# ── Environment ──────────────────────────────────────────────
+.env
+*.env.local
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual environments ──────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Testing & coverage ────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.tox/
+
+# ── Data files (generated — never commit large CSVs) ─────────
+data/raw/
+data/dead_letter/
+
+# ── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Airflow runtime files ─────────────────────────────────────
+airflow.db
+airflow.cfg
+webserver_config.py
+standalone_admin_password.txt
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Temporary / staging ───────────────────────────────────────
+/tmp/
+*.parquet
+*.tmp
+
+# ── Docker volumes (if mapped locally) ───────────────────────
+postgres-data/

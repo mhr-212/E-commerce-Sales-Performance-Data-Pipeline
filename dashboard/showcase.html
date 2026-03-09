@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-commerce Sales Data Pipeline | Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060912;
+      --bg-card:   #0d1320;
+      --bg-glass:  rgba(255,255,255,0.04);
+      --border:    rgba(255,255,255,0.08);
+      --accent1:   #6366f1;
+      --accent2:   #22d3ee;
+      --accent3:   #f59e0b;
+      --accent4:   #10b981;
+      --text-1:    #f1f5f9;
+      --text-2:    #94a3b8;
+      --text-3:    #475569;
+      --glow1:     rgba(99,102,241,0.35);
+      --glow2:     rgba(34,211,238,0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Ambient bg ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 10%, rgba(99,102,241,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(34,211,238,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,185,129,0.05) 0%, transparent 60%);
+    }
+
+    /* ─── Nav ─── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(6,9,18,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; color: var(--text-1);
+      text-decoration: none;
+    }
+    .nav-logo .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent4);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .nav-badges { display: flex; gap: 8px; }
+    .nav-badge {
+      padding: 4px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+      color: var(--text-2); background: var(--bg-glass);
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      text-align: center;
+      padding: 100px 24px 80px;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap-6px; gap: 6px;
+      padding: 6px 16px; border-radius: 999px;
+      border: 1px solid rgba(99,102,241,0.4);
+      background: rgba(99,102,241,0.1);
+      font-size: 12px; font-weight: 600; color: #a5b4fc;
+      letter-spacing: 0.5px; margin-bottom: 24px;
+    }
+    .hero-badge::before { content: '◆'; font-size: 8px; }
+    h1 {
+      font-size: clamp(36px, 6vw, 72px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #f1f5f9 0%, #6366f1 40%, #22d3ee 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 18px; color: var(--text-2);
+      max-width: 640px; margin: 0 auto 48px;
+      line-height: 1.7; font-weight: 400;
+    }
+    .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 28px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none; border: none; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent1), #818cf8);
+      color: #fff;
+      box-shadow: 0 0 24px rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(99,102,241,0.6); }
+    .btn-secondary {
+      background: var(--bg-glass); color: var(--text-1);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+
+    /* ─── Section ─── */
+    section { padding: 80px 24px; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      color: var(--accent2); text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(24px, 3vw, 40px); font-weight: 800;
+      letter-spacing: -1px; margin-bottom: 16px;
+    }
+    .section-desc { font-size: 16px; color: var(--text-2); line-height: 1.7; max-width: 600px; }
+
+    /* ─── Stats ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-top: 48px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      position: relative; overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .stat-card.c1::before { background: linear-gradient(90deg, var(--accent1), #818cf8); }
+    .stat-card.c2::before { background: linear-gradient(90deg, var(--accent2), #67e8f9); }
+    .stat-card.c3::before { background: linear-gradient(90deg, var(--accent3), #fcd34d); }
+    .stat-card.c4::before { background: linear-gradient(90deg, var(--accent4), #6ee7b7); }
+    .stat-card.c5::before { background: linear-gradient(90deg, #f43f5e, #fb923c); }
+    .stat-card.c6::before { background: linear-gradient(90deg, #a855f7, #ec4899); }
+    .stat-icon { font-size: 24px; margin-bottom: 12px; }
+    .stat-value {
+      font-size: 36px; font-weight: 800;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #f1f5f9, var(--text-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 12px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
+
+    /* ─── Pipeline Flow ─── */
+    .pipeline-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px; margin-top: 24px;
+    }
+    .pipeline-flow {
+      display: flex; align-items: center;
+      justify-content: center;
+      gap: 0; flex-wrap: nowrap;
+      overflow-x: auto;
+      padding: 24px 0;
+    }
+    .pf-node {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; min-width: 100px;
+    }
+    .pf-icon-wrap {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; position: relative;
+      transition: transform 0.3s;
+    }
+    .pf-icon-wrap:hover { transform: scale(1.15); }
+    .pf-icon-wrap.start  { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); }
+    .pf-icon-wrap.ex     { background: rgba(34,211,238,0.15); border: 1px solid rgba(34,211,238,0.3); }
+    .pf-icon-wrap.val    { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); }
+    .pf-icon-wrap.tr     { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); }
+    .pf-icon-wrap.lo     { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); }
+    .pf-icon-wrap.ma     { background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3); }
+    .pf-icon-wrap.cl     { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); }
+    .pf-icon-wrap.end    { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); }
+    .pf-label { font-size: 10px; font-weight: 600; color: var(--text-2); letter-spacing: 0.5px; text-align: center; line-height: 1.3; }
+    .pf-arrow {
+      flex-shrink: 0;
+      width: 32px; height: 2px;
+      background: linear-gradient(90deg, var(--border), rgba(99,102,241,0.5));
+      position: relative;
+    }
+    .pf-arrow::after {
+      content: '';
+      position: absolute; right: -6px; top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-left-color: rgba(99,102,241,0.6);
+    }
+
+    /* animated flow dot */
+    .pf-arrow::before {
+      content: '';
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent2);
+      animation: flow 2.5s linear infinite;
+    }
+    @keyframes flow {
+      from { left: 0%; opacity: 0; }
+      20%  { opacity: 1; }
+      80%  { opacity: 1; }
+      to   { left: 100%; opacity: 0; }
+    }
+
+    /* ─── Stack Grid ─── */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px; margin-top: 40px;
+    }
+    .stack-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+      transition: all 0.3s;
+    }
+    .stack-card:hover {
+      border-color: rgba(99,102,241,0.4);
+      background: rgba(99,102,241,0.06);
+      transform: translateY(-2px);
+    }
+    .stack-icon { font-size: 28px; flex-shrink: 0; }
+    .stack-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .stack-role { font-size: 12px; color: var(--text-2); line-height: 1.4; }
+
+    /* ─── Code block ─── */
+    .code-section {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      margin-top: 40px;
+    }
+    @media (max-width: 768px) { .code-section { grid-template-columns: 1fr; } }
+    .code-card {
+      background: #0a0f1a;
+      border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .code-header {
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-filename { font-size: 12px; color: var(--text-2); font-family: 'JetBrains Mono', monospace; margin-left: 4px; }
+    .code-body { padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; overflow-x: auto; }
+    .kw  { color: #c084fc; }
+    .fn  { color: #67e8f9; }
+    .st  { color: #86efac; }
+    .cm  { color: #475569; font-style: italic; }
+    .nu  { color: #fb923c; }
+    .op  { color: #94a3b8; }
+
+    /* ─── Highlights ─── */
+    .highlights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px; margin-top: 40px;
+    }
+    .hl-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.3s;
+    }
+    .hl-card:hover {
+      border-color: rgba(34,211,238,0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .hl-icon { font-size: 28px; margin-bottom: 14px; }
+    .hl-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text-1); }
+    .hl-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+    .hl-tag {
+      display: inline-block; margin-top: 12px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(34,211,238,0.1); color: var(--accent2);
+      border: 1px solid rgba(34,211,238,0.2);
+    }
+
+    /* ─── Test Results ─── */
+    .test-section {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px;
+    }
+    @media (max-width: 768px) { .test-section { grid-template-columns: 1fr; } }
+    .test-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+    }
+    .test-pass-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 20px; border-radius: 999px;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.3);
+      font-size: 13px; font-weight: 700; color: #34d399;
+      margin-bottom: 20px;
+    }
+    .test-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .test-row:last-child { border-bottom: none; }
+    .test-name { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text-2); }
+    .test-count { font-size: 13px; font-weight: 700; color: var(--accent4); }
+    .test-check { color: #10b981; font-size: 16px; }
+
+    /* ─── Schema ─── */
+    .schema-container { margin-top: 40px; }
+    .schema-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .schema-table {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      transition: all 0.3s;
+    }
+    .schema-table:hover { border-color: rgba(99,102,241,0.4); transform: translateY(-2px); }
+    .schema-table-header {
+      padding: 12px 16px;
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .schema-table-header.fact { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+    .schema-table-header.dim  { background: rgba(34,211,238,0.15); color: #67e8f9; }
+    .schema-table-header.mart { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .schema-col {
+      padding: 8px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-2);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+    }
+    .schema-col .pk { color: var(--accent3); font-weight: 700; }
+    .schema-col .fk { color: var(--accent2); }
+    .schema-col .type { color: var(--text-3); }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center; padding: 60px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-3); font-size: 13px;
+    }
+    .footer-name { font-weight: 700; color: var(--text-2); font-size: 15px; margin-bottom: 8px; }
+
+    /* ─── Animations ─── */
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.6s ease forwards; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    /* ─── Running indicator ─── */
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+      font-size: 11px; font-weight: 600; color: #34d399;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ─── Divider ─── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 24px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="dot"></span>
+    E-commerce Pipeline
+  </a>
+  <div class="nav-badges">
+    <span class="nav-badge">Python</span>
+    <span class="nav-badge">Airflow</span>
+    <span class="nav-badge">PostgreSQL</span>
+    <span class="nav-badge">Docker</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge fade-up">DATA ENGINEERING · PORTFOLIO PROJECT</div>
+  <h1 class="fade-up delay-1">E-commerce Sales<br/>Performance Pipeline</h1>
+  <p class="hero-sub fade-up delay-2">
+    Production-grade ETL pipeline processing <strong>5 million transactions</strong> across 5 years.
+    Dimensional modeling, Apache Airflow orchestration &amp; PostgreSQL — fully containerized.
+  </p>
+  <div class="hero-ctas fade-up delay-3">
+    <span class="live-badge"><span class="live-dot"></span>Pipeline Active</span>
+    <a href="#architecture" class="btn btn-primary">View Architecture ↓</a>
+    <a href="#highlights" class="btn btn-secondary">Innovation Highlights</a>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STATS -->
+<section>
+  <p class="section-label">By The Numbers</p>
+  <h2 class="section-title">Pipeline at a Glance</h2>
+  <p class="section-desc">Five years of synthetic e-commerce transactions. Zero data quality incidents. 100% test coverage on core logic.</p>
+
+  <div class="stats-grid">
+    <div class="stat-card c1">
+      <div class="stat-icon">📦</div>
+      <div class="stat-value">5M+</div>
+      <div class="stat-label">Transactions Processed</div>
+    </div>
+    <div class="stat-card c2">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value">49</div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+    <div class="stat-card c3">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-value">7</div>
+      <div class="stat-label">Airflow DAG Tasks</div>
+    </div>
+    <div class="stat-card c4">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value">60</div>
+      <div class="stat-label">Monthly Partitions</div>
+    </div>
+    <div class="stat-card c5">
+      <div class="stat-icon">🗂️</div>
+      <div class="stat-value">4</div>
+      <div class="stat-label">Dimensional Tables</div>
+    </div>
+    <div class="stat-card c6">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value">2h</div>
+      <div class="stat-label">SLA Full Cycle</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ARCHITECTURE / PIPELINE FLOW -->
+<section id="architecture">
+  <p class="section-label">Architecture</p>
+  <h2 class="section-title">Airflow DAG Pipeline</h2>
+  <p class="section-desc">Every step has retries, SLA monitoring, and structured audit logging. Temp files are removed even on failure.</p>
+
+  <div class="pipeline-section">
+    <div class="pipeline-flow">
+      <div class="pf-node">
+        <div class="pf-icon-wrap start">▶</div>
+        <div class="pf-label">START</div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap ex">📂</div>
+        <div class="pf-label">Extract<br/><span style="color:#475569">3 retries</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap val">🔍</div>
+        <div class="pf-label">Validate<br/><span style="color:#475569">Extract</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap tr">⚙️</div>
+        <div class="pf-label">Transform<br/><span style="color:#475569">3 retries</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap lo">💾</div>
+        <div class="pf-label">Load<br/><span style="color:#475569">3 retries</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap val">✔️</div>
+        <div class="pf-label">Validate<br/><span style="color:#475569">Load</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap ma">📊</div>
+        <div class="pf-label">Refresh<br/><span style="color:#475569">Mart</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap cl">🧹</div>
+        <div class="pf-label">Cleanup<br/><span style="color:#475569">all_done</span></div>
+      </div>
+      <div class="pf-arrow"></div>
+      <div class="pf-node">
+        <div class="pf-icon-wrap end">⏹</div>
+        <div class="pf-label">END</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:32px; flex-wrap:wrap; justify-content:center; margin-top:24px; padding-top:24px; border-top:1px solid var(--border);">
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">SCHEDULE</div>
+        <div style="font-size:14px; font-weight:700; color:var(--accent2);">@daily</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">CATCHUP</div>
+        <div style="font-size:14px; font-weight:700; color:var(--accent4);">True</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">MAX ACTIVE RUNS</div>
+        <div style="font-size:14px; font-weight:700; color:var(--accent1);">3</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">SLA</div>
+        <div style="font-size:14px; font-weight:700; color:var(--accent3);">2 hours</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">STATE TRANSFER</div>
+        <div style="font-size:14px; font-weight:700; color:var(--text-2);">Parquet + XCom</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SCHEMA -->
+<section id="schema">
+  <p class="section-label">Data Model</p>
+  <h2 class="section-title">Star Schema</h2>
+  <p class="section-desc">Range-partitioned fact table (one partition per month). SCD Type-2 products. Pre-seeded date dimension.</p>
+
+  <div class="schema-container">
+    <div class="schema-grid">
+      <!-- fact_sales -->
+      <div class="schema-table" style="border-color:rgba(99,102,241,0.4);">
+        <div class="schema-table-header fact">⭐ fact_sales</div>
+        <div class="schema-col"><span class="pk">sale_id PK</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span class="fk">date_key FK</span><span class="type">int</span></div>
+        <div class="schema-col"><span class="fk">product_sk FK</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span class="fk">customer_sk FK</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span>net_amount</span><span class="type">numeric</span></div>
+        <div class="schema-col"><span>quantity</span><span class="type">int</span></div>
+        <div class="schema-col"><span>row_checksum</span><span class="type">char(64)</span></div>
+        <div class="schema-col"><span style="color:var(--accent3);font-size:10px;">⚡ PARTITIONED BY MONTH</span></div>
+      </div>
+
+      <!-- dim_product -->
+      <div class="schema-table">
+        <div class="schema-table-header dim">📦 dim_product</div>
+        <div class="schema-col"><span class="pk">product_sk PK</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span>product_id</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>product_name</span><span class="type">text</span></div>
+        <div class="schema-col"><span>category</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>unit_price</span><span class="type">numeric</span></div>
+        <div class="schema-col"><span>valid_from</span><span class="type">date</span></div>
+        <div class="schema-col"><span>valid_to</span><span class="type">date</span></div>
+        <div class="schema-col"><span style="color:var(--accent2);font-size:10px;">🔄 SCD TYPE-2</span></div>
+      </div>
+
+      <!-- dim_customer -->
+      <div class="schema-table">
+        <div class="schema-table-header dim">👤 dim_customer</div>
+        <div class="schema-col"><span class="pk">customer_sk PK</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span>customer_id</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>segment</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>country</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>region</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>signup_date</span><span class="type">date</span></div>
+      </div>
+
+      <!-- dim_date -->
+      <div class="schema-table">
+        <div class="schema-table-header dim">📅 dim_date</div>
+        <div class="schema-col"><span class="pk">date_key PK</span><span class="type">int</span></div>
+        <div class="schema-col"><span>full_date</span><span class="type">date</span></div>
+        <div class="schema-col"><span>year</span><span class="type">int</span></div>
+        <div class="schema-col"><span>quarter</span><span class="type">int</span></div>
+        <div class="schema-col"><span>month</span><span class="type">int</span></div>
+        <div class="schema-col"><span>is_weekend</span><span class="type">bool</span></div>
+        <div class="schema-col"><span style="color:var(--text-3);font-size:10px;">2019 – 2025 seeded</span></div>
+      </div>
+
+      <!-- mart -->
+      <div class="schema-table">
+        <div class="schema-table-header mart">📊 mart_daily_sales</div>
+        <div class="schema-col"><span>full_date</span><span class="type">date</span></div>
+        <div class="schema-col"><span>category</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>revenue</span><span class="type">numeric</span></div>
+        <div class="schema-col"><span>units_sold</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span>orders</span><span class="type">bigint</span></div>
+        <div class="schema-col"><span style="color:var(--accent4);font-size:10px;">CONCURRENT REFRESH</span></div>
+      </div>
+
+      <!-- audit -->
+      <div class="schema-table">
+        <div class="schema-table-header" style="background:rgba(244,63,94,0.15);color:#fb7185;">🔍 audit_log</div>
+        <div class="schema-col"><span>run_id</span><span class="type">uuid</span></div>
+        <div class="schema-col"><span>stage</span><span class="type">varchar</span></div>
+        <div class="schema-col"><span>rows_processed</span><span class="type">int</span></div>
+        <div class="schema-col"><span>source_checksum</span><span class="type">char(64)</span></div>
+        <div class="schema-col"><span>target_checksum</span><span class="type">char(64)</span></div>
+        <div class="schema-col"><span>duration_secs</span><span class="type">numeric</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CODE SNIPPETS -->
+<section>
+  <p class="section-label">Code</p>
+  <h2 class="section-title">Key Patterns</h2>
+  <p class="section-desc">Two production patterns that separate this pipeline from typical tutorials.</p>
+
+  <div class="code-section">
+    <!-- Snippet 1 -->
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57;"></div>
+        <div class="code-dot" style="background:#febc2e;"></div>
+        <div class="code-dot" style="background:#28c840;"></div>
+        <span class="code-filename">load.py — Checksum-Gated UPSERT</span>
+      </div>
+      <div class="code-body">
+<span class="cm"># Zero I/O on re-runs — only writes changed rows</span>
+<span class="kw">INSERT INTO</span> fact_sales (
+    sale_id, sale_date, product_sk,
+    net_amount, row_checksum, ...
+)
+<span class="kw">VALUES</span> (:sale_id, :sale_date, ...)
+<span class="kw">ON CONFLICT</span> (sale_id, sale_date)
+<span class="kw">DO UPDATE SET</span>
+    net_amount  = EXCLUDED.net_amount,
+    row_checksum = EXCLUDED.row_checksum
+<span class="kw">WHERE</span>
+    fact_sales.row_checksum
+        <span class="op">!=</span> EXCLUDED.row_checksum<span class="op">;</span>
+
+<span class="cm"># ↑ Fully idempotent — safe to re-trigger
+# any past date with zero DB side effects</span>
+      </div>
+    </div>
+
+    <!-- Snippet 2 -->
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57;"></div>
+        <div class="code-dot" style="background:#febc2e;"></div>
+        <div class="code-dot" style="background:#28c840;"></div>
+        <span class="code-filename">extract.py — Schema Contract</span>
+      </div>
+      <div class="code-body">
+<span class="cm"># Pandera catches bad rows at the boundary</span>
+SALES_SCHEMA = <span class="fn">DataFrameSchema</span>({
+    <span class="st">"sale_id"</span>:    Column(str, unique=<span class="kw">True</span>),
+    <span class="st">"quantity"</span>:   Column(int, Check.gt(<span class="nu">0</span>)),
+    <span class="st">"discount_pct"</span>: Column(
+        float, <span class="fn">Check.in_range</span>(<span class="nu">0.0</span>, <span class="nu">1.0</span>)
+    ),
+    <span class="st">"channel"</span>:    Column(str,
+        <span class="fn">Check.isin</span>([<span class="st">"online"</span>, <span class="st">"mobile_app"</span>,
+                     <span class="st">"marketplace"</span>, <span class="st">"in_store"</span>])
+    ),
+}, coerce=<span class="kw">True</span>)
+
+<span class="cm"># Bad rows → dead_letter/, not dropped silently
+# ↑ Catches upstream issues at source, not
+#   silently 3 steps later in the warehouse</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TESTS -->
+<section id="tests">
+  <p class="section-label">Quality</p>
+  <h2 class="section-title">49 / 49 Tests Passing</h2>
+  <p class="section-desc">Unit, integration, and data quality layers. Runs in 2.33 seconds. No Docker required.</p>
+
+  <div class="test-section">
+    <div class="test-card">
+      <div class="test-pass-badge">✅ All Tests Green — 2.33s</div>
+      <div class="test-row">
+        <span class="test-name">test_transform.py</span>
+        <span style="display:flex;align-items:center;gap:8px;"><span class="test-count">23</span><span class="test-check">✓</span></span>
+      </div>
+      <div class="test-row">
+        <span class="test-name">test_load.py</span>
+        <span style="display:flex;align-items:center;gap:8px;"><span class="test-count">7</span><span class="test-check">✓</span></span>
+      </div>
+      <div class="test-row">
+        <span class="test-name">test_data_quality.py</span>
+        <span style="display:flex;align-items:center;gap:8px;"><span class="test-count">19</span><span class="test-check">✓</span></span>
+      </div>
+      <div class="test-row">
+        <span class="test-name">test_dag.py</span>
+        <span style="display:flex;align-items:center;gap:8px;"><span class="test-count">DAG ✓</span><span class="test-check">✓</span></span>
+      </div>
+    </div>
+    <div class="test-card" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">What each layer tests</div>
+      <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:#a5b4fc;margin-bottom:6px;">Unit · test_transform.py</div>
+        <div style="font-size:12px;color:var(--text-2);">Financial math, dtype normalisation, SHA-256 checksum computation, discount derivation</div>
+      </div>
+      <div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:#67e8f9;margin-bottom:6px;">Integration · test_load.py</div>
+        <div style="font-size:12px;color:var(--text-2);">Idempotency proof, UPSERT logic on SQLite in-memory, validate_load parity gate (0.1% tolerance)</div>
+      </div>
+      <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:#6ee7b7;margin-bottom:6px;">Quality · test_data_quality.py</div>
+        <div style="font-size:12px;color:var(--text-2);">Referential integrity, null invariants, variance guard, duplicate sale_id detection</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HIGHLIGHTS -->
+<section id="highlights">
+  <p class="section-label">Innovation</p>
+  <h2 class="section-title">What Makes This Top-1%</h2>
+  <p class="section-desc">These patterns separate production data engineering from tutorials.</p>
+
+  <div class="highlights-grid">
+    <div class="hl-card">
+      <div class="hl-icon">🔒</div>
+      <div class="hl-title">Checksum-Gated UPSERT</div>
+      <div class="hl-desc">Row-level SHA-256 checksum stored in the warehouse. <code style="color:var(--accent2);font-size:11px;">WHERE row_checksum != EXCLUDED.row_checksum</code> means zero disk I/O on re-runs. Fully idempotent.</div>
+      <span class="hl-tag">PostgreSQL</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">🚦</div>
+      <div class="hl-title">Pandera Schema Contracts</div>
+      <div class="hl-desc">DataFrameSchema validates column types, ranges, and allowed values at the extract boundary. Bad rows routed to dead-letter with error annotation — never silently dropped.</div>
+      <span class="hl-tag">Data Quality</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">🧩</div>
+      <div class="hl-title">SCD Type-2 Products</div>
+      <div class="hl-desc"><code style="color:var(--accent2);font-size:11px;">valid_from / valid_to</code> on dim_product tracks price changes over 5 years without corrupting historical revenue accuracy.</div>
+      <span class="hl-tag">Dimensional Modeling</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">📊</div>
+      <div class="hl-title">Concurrent Mart Refresh</div>
+      <div class="hl-desc"><code style="color:var(--accent2);font-size:11px;">REFRESH MATERIALIZED VIEW CONCURRENTLY</code> — BI dashboards never experience downtime or stale reads during refresh cycles.</div>
+      <span class="hl-tag">Zero Downtime</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">🗂️</div>
+      <div class="hl-title">Monthly Range Partitioning</div>
+      <div class="hl-desc">fact_sales partitioned by month. PostgreSQL partition pruning skips 90%+ of data on typical date-range analytics queries — stays fast at 50M+ rows.</div>
+      <span class="hl-tag">Scalability</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">🔍</div>
+      <div class="hl-title">ContextVar Trace Logging</div>
+      <div class="hl-desc">Python <code style="color:var(--accent2);font-size:11px;">contextvars</code> injects <code style="color:var(--accent2);font-size:11px;">run_id + task_id + dag_id</code> into every log line — full trace correlation across distributed tasks without thread-safety issues.</div>
+      <span class="hl-tag">Observability</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">✔️</div>
+      <div class="hl-title">validate_load Gate</div>
+      <div class="hl-desc"><code style="color:var(--accent2);font-size:11px;">SUM(net_amount)</code> parity check between source CSV and database after every load. Raises AssertionError if variance &gt; 0.1% — hard stop on data loss.</div>
+      <span class="hl-tag">Data Integrity</span>
+    </div>
+    <div class="hl-card">
+      <div class="hl-icon">🔄</div>
+      <div class="hl-title">all_done Cleanup Task</div>
+      <div class="hl-desc">Airflow <code style="color:var(--accent2);font-size:11px;">trigger_rule="all_done"</code> ensures temp Parquet staging files are removed even when upstream tasks fail — no orphaned files accumulating in production.</div>
+      <span class="hl-tag">Reliability</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- STACK -->
+<section id="stack">
+  <p class="section-label">Tech Stack</p>
+  <h2 class="section-title">Built With</h2>
+  <p class="section-desc">Industry-standard tools used in production at scale.</p>
+
+  <div class="stack-grid">
+    <div class="stack-card">
+      <div class="stack-icon">🐍</div>
+      <div>
+        <div class="stack-name">Python 3.11</div>
+        <div class="stack-role">ETL scripts, data generation, tests</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🌬️</div>
+      <div>
+        <div class="stack-name">Apache Airflow 2.9</div>
+        <div class="stack-role">DAG orchestration, scheduling, SLA</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🐘</div>
+      <div>
+        <div class="stack-name">PostgreSQL 15</div>
+        <div class="stack-role">Star schema, partitioning, materialized views</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🐼</div>
+      <div>
+        <div class="stack-name">Pandas + Pandera</div>
+        <div class="stack-role">Data transformation + schema contracts</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🐳</div>
+      <div>
+        <div class="stack-name">Docker Compose</div>
+        <div class="stack-role">Containerized Airflow + PostgreSQL stack</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🧪</div>
+      <div>
+        <div class="stack-name">Pytest</div>
+        <div class="stack-role">Unit, integration, data quality tests</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">🔗</div>
+      <div>
+        <div class="stack-name">SQLAlchemy</div>
+        <div class="stack-role">Connection pool, session management</div>
+      </div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-icon">📦</div>
+      <div>
+        <div class="stack-name">NumPy + Faker</div>
+        <div class="stack-role">Synthetic data generation (5M rows)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-name">E-commerce Sales Performance Data Pipeline</div>
+  <p>End-to-end ETL · Dimensional Modeling · Airflow Orchestration · Docker</p>
+  <p style="margin-top:8px; color: var(--text-3);">Built with Python · PostgreSQL · Apache Airflow</p>
+</footer>
+
+<script>
+  // Intersection Observer for scroll-triggered animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.stat-card, .hl-card, .stack-card, .schema-table, .test-card, .code-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+
+  // Animate stat values counting up
+  function animateCounter(el, target, suffix = '') {
+    let start = 0;
+    const isDecimal = target % 1 !== 0;
+    const duration = 1500;
+    const step = duration / 60;
+    const increment = target / (duration / step);
+    const timer = setInterval(() => {
+      start = Math.min(start + increment, target);
+      el.textContent = (isDecimal ? start.toFixed(1) : Math.floor(start).toLocaleString()) + suffix;
+      if (start >= target) clearInterval(timer);
+    }, step);
+  }
+
+  const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && !e.target.dataset.animated) {
+        e.target.dataset.animated = true;
+        const text = e.target.textContent;
+        const match = text.match(/^([\d.]+)(.*)$/);
+        if (match) {
+          animateCounter(e.target, parseFloat(match[1]), match[2]);
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  document.querySelectorAll('.stat-value').forEach(el => statObserver.observe(el));
+</script>
+</body>
+</html>

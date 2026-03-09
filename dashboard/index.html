@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>E-commerce Pipeline Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #1a2235;
+    --border: #1e2d45;
+    --accent: #6366f1;
+    --accent2: #22d3ee;
+    --accent3: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --glow: rgba(99,102,241,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; }
+
+  /* Sidebar */
+  .sidebar {
+    width:220px; background:var(--surface); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:24px 0; position:fixed; height:100vh; z-index:10;
+  }
+  .logo { padding:0 20px 28px; display:flex; align-items:center; gap:10px; }
+  .logo-icon { width:34px; height:34px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:8px;
+    display:grid; place-items:center; font-size:16px; }
+  .logo-text { font-size:13px; font-weight:700; letter-spacing:.5px; color:var(--text); line-height:1.2; }
+  .logo-sub { font-size:10px; color:var(--muted); font-weight:400; }
+  nav a { display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13px; font-weight:500;
+    color:var(--muted); text-decoration:none; cursor:pointer; transition:.2s; border-left:3px solid transparent; }
+  nav a:hover { color:var(--text); background:var(--glow); }
+  nav a.active { color:var(--accent); border-left-color:var(--accent); background:var(--glow); }
+  nav a .icon { font-size:16px; width:20px; text-align:center; }
+  .sidebar-bottom { margin-top:auto; padding:16px 20px; border-top:1px solid var(--border); }
+  .status-badge { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--accent3); }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--accent3); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Main */
+  .main { margin-left:220px; flex:1; padding:28px; overflow-y:auto; min-height:100vh; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* Header */
+  .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+  .page-title { font-size:22px; font-weight:700; }
+  .page-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+  .refresh-btn { background:var(--card); border:1px solid var(--border); color:var(--text);
+    padding:8px 16px; border-radius:8px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:6px;
+    transition:.2s; font-family:inherit; }
+  .refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* KPI Cards */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .kpi-card {
+    background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px;
+    position:relative; overflow:hidden; transition:.3s;
+  }
+  .kpi-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 24px var(--glow); }
+  .kpi-card::before { content:''; position:absolute; top:0; right:0; width:80px; height:80px;
+    border-radius:50%; filter:blur(30px); opacity:.4; }
+  .kpi-card.c1::before { background:var(--accent); }
+  .kpi-card.c2::before { background:var(--accent2); }
+  .kpi-card.c3::before { background:var(--accent3); }
+  .kpi-card.c4::before { background:var(--warn); }
+  .kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
+  .kpi-value { font-size:28px; font-weight:700; line-height:1; margin-bottom:6px; }
+  .kpi-change { font-size:12px; display:flex; align-items:center; gap:4px; }
+  .kpi-change.up { color:var(--accent3); }
+  .kpi-change.down { color:var(--danger); }
+
+  /* Charts grid */
+  .charts-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+  .chart-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+  .chart-card.full { grid-column:1/-1; }
+  .chart-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .chart-sub { font-size:12px; color:var(--muted); margin-bottom:18px; }
+  .chart-wrap { position:relative; height:220px; }
+
+  /* Pipeline steps */
+  .pipeline-flow { display:flex; align-items:center; gap:0; margin:16px 0; overflow-x:auto; padding-bottom:4px; }
+  .pipe-step { display:flex; align-items:center; }
+  .step-box {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:10px 14px; font-size:12px; font-weight:500; white-space:nowrap;
+    display:flex; flex-direction:column; align-items:center; gap:4px; min-width:100px; cursor:pointer; transition:.2s;
+  }
+  .step-box:hover { border-color:var(--accent); }
+  .step-box.success { border-color:var(--accent3); }
+  .step-box.running { border-color:var(--accent); animation:borderPulse 1.5s infinite; }
+  .step-box.failed { border-color:var(--danger); }
+  .step-box.queued { border-color:var(--border); opacity:.6; }
+  @keyframes borderPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.4)} 50%{box-shadow:0 0 0 4px rgba(99,102,241,0)} }
+  .step-icon { font-size:18px; }
+  .step-name { color:var(--text); font-size:11px; }
+  .step-dur { font-size:10px; color:var(--muted); }
+  .pipe-arrow { color:var(--muted); font-size:18px; padding:0 4px; flex-shrink:0; }
+
+  /* Table */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:10px 14px; color:var(--muted); font-weight:500; font-size:11px;
+    text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); }
+  td { padding:11px 14px; border-bottom:1px solid rgba(30,45,69,.6); }
+  tr:last-child td { border:none; }
+  tr:hover td { background:rgba(99,102,241,.04); }
+  .badge {
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px;
+    font-size:11px; font-weight:500;
+  }
+  .badge.success { background:rgba(16,185,129,.15); color:var(--accent3); }
+  .badge.failed { background:rgba(239,68,68,.15); color:var(--danger); }
+  .badge.running { background:rgba(99,102,241,.15); color:var(--accent); }
+  .badge.warning { background:rgba(245,158,11,.15); color:var(--warn); }
+  .badge-dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+
+  /* Quality meters */
+  .quality-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+  .quality-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+  .q-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:12px; }
+  .q-value { font-size:32px; font-weight:700; margin-bottom:8px; }
+  .progress-bar { height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+  .progress-fill { height:100%; border-radius:3px; transition:width 1s ease; }
+  .green { background:linear-gradient(90deg,var(--accent3),#34d399); }
+  .blue { background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+  .orange { background:linear-gradient(90deg,var(--warn),#fbbf24); }
+  .q-note { font-size:11px; color:var(--muted); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--surface); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  @media(max-width:900px) {
+    .kpi-grid { grid-template-columns:1fr 1fr; }
+    .charts-grid { grid-template-columns:1fr; }
+    .quality-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🛒</div>
+    <div>
+      <div class="logo-text">Pipeline<br>Monitor</div>
+    </div>
+  </div>
+  <nav>
+    <a class="active" onclick="show('overview',this)" id="nav-overview">
+      <span class="icon">📊</span> Overview
+    </a>
+    <a onclick="show('pipeline',this)" id="nav-pipeline">
+      <span class="icon">🔄</span> Pipeline Status
+    </a>
+    <a onclick="show('sales',this)" id="nav-sales">
+      <span class="icon">💰</span> Sales Analytics
+    </a>
+    <a onclick="show('quality',this)" id="nav-quality">
+      <span class="icon">🛡️</span> Data Quality
+    </a>
+    <a onclick="show('audit',this)" id="nav-audit">
+      <span class="icon">📋</span> Audit Log
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="status-badge"><span class="dot"></span> Pipeline Live</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;">Last run: 2 min ago</div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- OVERVIEW -->
+  <div class="page active" id="overview">
+    <div class="page-header">
+      <div><div class="page-title">Overview</div><div class="page-sub">E-commerce Sales · 2020–2024</div></div>
+      <button class="refresh-btn" onclick="animateCounters()">↻ Refresh</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card c1">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value" id="kpi-rev">$0</div>
+        <div class="kpi-change up">▲ 18.4% vs last year</div>
+      </div>
+      <div class="kpi-card c2">
+        <div class="kpi-label">Total Orders</div>
+        <div class="kpi-value" id="kpi-orders">0</div>
+        <div class="kpi-change up">▲ 12.1% vs last year</div>
+      </div>
+      <div class="kpi-card c3">
+        <div class="kpi-label">Rows Loaded</div>
+        <div class="kpi-value" id="kpi-rows">0</div>
+        <div class="kpi-change up">▲ 5 years · 60 months</div>
+      </div>
+      <div class="kpi-card c4">
+        <div class="kpi-label">Return Rate</div>
+        <div class="kpi-value" id="kpi-return">0%</div>
+        <div class="kpi-change down">▼ 0.3% improvement</div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Monthly Revenue Trend</div>
+        <div class="chart-sub">2020–2024 · Gross vs Net Revenue</div>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Revenue by Category</div>
+        <div class="chart-sub">All-time share</div>
+        <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Daily Orders · Last 30 Days</div>
+        <div class="chart-sub">Orders with seasonal peaks highlighted</div>
+        <div class="chart-wrap"><canvas id="ordersChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Sales by Region</div>
+        <div class="chart-sub">Net revenue distribution</div>
+        <div class="chart-wrap"><canvas id="regionChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE STATUS -->
+  <div class="page" id="pipeline">
+    <div class="page-header">
+      <div><div class="page-title">Pipeline Status</div><div class="page-sub">DAG: sales_etl · @daily</div></div>
+      <button class="refresh-btn">↻ Refresh</button>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-title">Today's Run — sales_etl</div>
+      <div class="chart-sub">2024-12-31 · Run ID: 6f3a9b12-e… · Duration: 47m 23s</div>
+      <div class="pipeline-flow">
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">✅</span><span class="step-name">start</span><span class="step-dur">0s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">📥</span><span class="step-name">extract</span><span class="step-dur">8m 12s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">🔍</span><span class="step-name">validate_extract</span><span class="step-dur">14s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">⚙️</span><span class="step-name">transform</span><span class="step-dur">22m 05s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">💾</span><span class="step-name">load</span><span class="step-dur">14m 38s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">✔️</span><span class="step-name">validate_load</span><span class="step-dur">42s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">🔄</span><span class="step-name">refresh_mart</span><span class="step-dur">1m 08s</span></div>
+        </div>
+        <span class="pipe-arrow">›</span>
+        <div class="pipe-step">
+          <div class="step-box success"><span class="step-icon">🧹</span><span class="step-name">cleanup</span><span class="step-dur">2s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Run Duration Trend (Last 30 Runs)</div>
+        <div class="chart-sub">Minutes per full pipeline run</div>
+        <div class="chart-wrap"><canvas id="durationChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Task Success Rate</div>
+        <div class="chart-sub">Last 90 days</div>
+        <div class="chart-wrap"><canvas id="successChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Recent Pipeline Runs</div>
+      <div class="chart-sub">Last 7 executions</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Run Date</th><th>Run ID</th><th>Duration</th><th>Rows Loaded</th><th>Status</th><th>Retries</th>
+          </tr></thead>
+          <tbody id="pipeline-runs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALES ANALYTICS -->
+  <div class="page" id="sales">
+    <div class="page-header">
+      <div><div class="page-title">Sales Analytics</div><div class="page-sub">5-year performance · mart_daily_sales</div></div>
+      <button class="refresh-btn">↻ Refresh</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card c1"><div class="kpi-label">Avg Order Value</div><div class="kpi-value">$184</div><div class="kpi-change up">▲ 9.2% YoY</div></div>
+      <div class="kpi-card c2"><div class="kpi-label">Units Sold</div><div class="kpi-value">12.4M</div><div class="kpi-change up">▲ 14.7% YoY</div></div>
+      <div class="kpi-card c3"><div class="kpi-label">Active Customers</div><div class="kpi-value">48,230</div><div class="kpi-change up">▲ 3.1% MoM</div></div>
+      <div class="kpi-card c4"><div class="kpi-label">Discount Rate</div><div class="kpi-value">11.3%</div><div class="kpi-change down">▼ stable</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Top 10 Products by Revenue</div>
+        <div class="chart-sub">All-time · net_amount</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="topProductsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Revenue by Channel</div>
+        <div class="chart-sub">Online vs Mobile vs Marketplace vs In-store</div>
+        <div class="chart-wrap"><canvas id="channelChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card full">
+      <div class="chart-title">Yearly Revenue Comparison</div>
+      <div class="chart-sub">2020–2024 · Monthly breakdown by year</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="yearlyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DATA QUALITY -->
+  <div class="page" id="quality">
+    <div class="page-header">
+      <div><div class="page-title">Data Quality</div><div class="page-sub">Pandera contracts · checksums · dead-letter</div></div>
+    </div>
+    <div class="quality-grid">
+      <div class="quality-card">
+        <div class="q-label">Schema Pass Rate</div>
+        <div class="q-value" style="color:var(--accent3)">99.7%</div>
+        <div class="progress-bar"><div class="progress-fill green" style="width:99.7%"></div></div>
+        <div class="q-note">4,812 rows quarantined of 1.8M processed this month</div>
+      </div>
+      <div class="quality-card">
+        <div class="q-label">Checksum Match Rate</div>
+        <div class="q-value" style="color:var(--accent)">100%</div>
+        <div class="progress-bar"><div class="progress-fill blue" style="width:100%"></div></div>
+        <div class="q-note">SUM(net_amount) parity — 0 validation failures in 30 runs</div>
+      </div>
+      <div class="quality-card">
+        <div class="q-label">Dead-Letter Rate</div>
+        <div class="q-value" style="color:var(--warn)">0.27%</div>
+        <div class="progress-bar"><div class="progress-fill orange" style="width:27%"></div></div>
+        <div class="q-note">Primary cause: invalid discount_pct > 1.0 from source</div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Dead-Letter Errors by Type</div>
+        <div class="chart-sub">Last 30 days</div>
+        <div class="chart-wrap"><canvas id="errorTypeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Row Count Variance</div>
+        <div class="chart-sub">Source vs. loaded (should be ≤5%)</div>
+        <div class="chart-wrap"><canvas id="varianceChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Data Quality Rules</div>
+      <div class="chart-sub">Pandera + business rule enforcement results</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rule</th><th>Column</th><th>Violations (30d)</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>quantity > 0</td><td>quantity</td><td>0</td><td><span class="badge success"><span class="badge-dot"></span>Pass</span></td></tr>
+            <tr><td>discount_pct in [0,1]</td><td>discount_pct</td><td>3,211</td><td><span class="badge warning"><span class="badge-dot"></span>Monitor</span></td></tr>
+            <tr><td>net_amount ≥ 0</td><td>net_amount</td><td>0</td><td><span class="badge success"><span class="badge-dot"></span>Pass</span></td></tr>
+            <tr><td>channel in valid set</td><td>channel</td><td>1,601</td><td><span class="badge warning"><span class="badge-dot"></span>Monitor</span></td></tr>
+            <tr><td>sale_id unique</td><td>sale_id</td><td>0</td><td><span class="badge success"><span class="badge-dot"></span>Pass</span></td></tr>
+            <tr><td>gross - discount = net</td><td>net_amount</td><td>0</td><td><span class="badge success"><span class="badge-dot"></span>Pass</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIT LOG -->
+  <div class="page" id="audit">
+    <div class="page-header">
+      <div><div class="page-title">Audit Log</div><div class="page-sub">pipeline_audit_log · all pipeline events</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Run Date</th><th>Stage</th><th>Status</th><th>Rows Processed</th><th>Rows Inserted</th><th>Rows Rejected</th><th>Duration</th><th>Checksum</th>
+          </tr></thead>
+          <tbody id="audit-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── Navigation ─────────────────────────────────────────────
+function show(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Simulated data helpers ──────────────────────────────────
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const YEARS = [2020,2021,2022,2023,2024];
+const PALETTE = ['#6366f1','#22d3ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+const SEASONAL = [0.80,0.75,0.90,0.95,1.00,1.05,1.10,1.10,1.05,1.15,1.30,1.60];
+
+function rnd(min, max) { return Math.random()*(max-min)+min; }
+function fmt(n) { return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0); }
+
+// Build 60-month revenue series
+const grossSeries = [], netSeries = [], labels60 = [];
+let baseGross = 2_800_000, baseNet = 2_500_000;
+for (let y=0;y<5;y++) for (let m=0;m<12;m++) {
+  const s = SEASONAL[m]*(1+y*0.12);
+  grossSeries.push(Math.round(baseGross*s*rnd(.92,1.08)));
+  netSeries.push(Math.round(baseNet*s*rnd(.93,1.07)));
+  labels60.push(`${months[m]} ${2020+y}`);
+}
+
+// ── KPI counters ───────────────────────────────────────────
+function animateCounters() {
+  const totalNet = netSeries.reduce((a,b)=>a+b,0);
+  counter('kpi-rev','$',totalNet,1,'M',1e6,1);
+  counter('kpi-orders','',3_820_000,0,'M',1e6,1);
+  counter('kpi-rows','',5_124_338,0,'M',1e6,1);
+  counter('kpi-return','',3.0,1,'%',1,1);
+}
+function counter(id, prefix, target, dec, suffix, div, duration) {
+  const el = document.getElementById(id);
+  const start = Date.now();
+  const step = () => {
+    const p = Math.min((Date.now()-start)/(duration*800),1);
+    const val = target*p/div;
+    el.textContent = prefix+(dec?val.toFixed(dec):Math.round(val))+suffix;
+    if (p<1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// ── Chart defaults ─────────────────────────────────────────
+Chart.defaults.color = '#64748b';
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.font.size = 11;
+const gridColor = 'rgba(30,45,69,.8)';
+
+function lineOpts(tension=.4) {
+  return { responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:10,padding:16}}},
+    scales:{
+      x:{grid:{color:gridColor},ticks:{maxTicksLimit:8}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>fmt(v)}}
+    }, elements:{point:{radius:0,hoverRadius:4}} };
+}
+function barOpts() {
+  return { responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:gridColor}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>fmt(v)}}
+    }};
+}
+function doughnutOpts() {
+  return { responsive:true, maintainAspectRatio:false, cutout:'65%',
+    plugins:{legend:{position:'right',labels:{boxWidth:10,padding:12}}} };
+}
+
+// ── Charts init ────────────────────────────────────────────
+window.addEventListener('load', () => {
+  animateCounters();
+
+  // Revenue trend
+  new Chart('revenueChart', { type:'line', data:{
+    labels: labels60.filter((_,i)=>i%3===0),
+    datasets:[
+      { label:'Gross',data:grossSeries.filter((_,i)=>i%3===0),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',fill:true,tension:.4,borderWidth:2 },
+      { label:'Net',data:netSeries.filter((_,i)=>i%3===0),borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.06)',fill:true,tension:.4,borderWidth:2 }
+    ]}, options:lineOpts()});
+
+  // Category donut
+  new Chart('categoryChart', { type:'doughnut', data:{
+    labels:['Electronics','Clothing','Home & Garden','Books','Sports','Beauty'],
+    datasets:[{data:[32,24,18,10,9,7],backgroundColor:PALETTE,borderWidth:0,hoverOffset:6}]
+  }, options:doughnutOpts()});
+
+  // Daily orders (last 30)
+  const days30 = Array.from({length:30},(_,i)=>`Dec ${i+1}`);
+  const orders30 = days30.map(()=>Math.round(rnd(1200,3800)));
+  new Chart('ordersChart', { type:'bar', data:{
+    labels:days30,
+    datasets:[{data:orders30,backgroundColor:orders30.map(v=>v>3000?'rgba(99,102,241,.9)':'rgba(99,102,241,.45)'),borderRadius:4}]
+  }, options:barOpts()});
+
+  // Region donut
+  new Chart('regionChart', { type:'doughnut', data:{
+    labels:['North America','Europe','Asia Pacific','Latin America','Middle East'],
+    datasets:[{data:[38,28,20,9,5],backgroundColor:PALETTE,borderWidth:0,hoverOffset:6}]
+  }, options:doughnutOpts()});
+
+  // Pipeline duration
+  const runDurations = Array.from({length:30},()=>Math.round(rnd(38,72)));
+  new Chart('durationChart', { type:'line', data:{
+    labels:Array.from({length:30},(_,i)=>`Run ${i+1}`),
+    datasets:[{label:'Duration (min)',data:runDurations,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',fill:true,tension:.4,borderWidth:2}]
+  }, options:{...lineOpts(), scales:{x:{grid:{color:gridColor},ticks:{maxTicksLimit:6}},y:{grid:{color:gridColor}}}}});
+
+  // Task success pie
+  new Chart('successChart', { type:'doughnut', data:{
+    labels:['Success','Failed','Retried'],
+    datasets:[{data:[96.4,1.2,2.4],backgroundColor:['#10b981','#ef4444','#f59e0b'],borderWidth:0,hoverOffset:6}]
+  }, options:doughnutOpts()});
+
+  // Pipeline runs table
+  const tbody = document.getElementById('pipeline-runs');
+  for(let i=0;i<7;i++) {
+    const d = new Date(2024,11,31-i);
+    const dur = `${Math.round(rnd(40,72))}m ${Math.round(rnd(0,59))}s`;
+    const rows = (Math.round(rnd(68,95))*1000).toLocaleString();
+    const stat = i===2?'failed':i===4?'running':'success';
+    const retries = i===2?'2':i===4?'0':'0';
+    tbody.innerHTML += `<tr>
+      <td>${d.toLocaleDateString('en-GB')}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--muted)">${crypto.randomUUID().slice(0,12)}…</td>
+      <td>${dur}</td><td>${rows}</td>
+      <td><span class="badge ${stat}"><span class="badge-dot"></span>${stat}</span></td>
+      <td>${retries}</td></tr>`;
+  }
+
+  // Top products bar
+  const products = ['UltraBook Pro X','SmartPhone Z12','Wireless Buds','GamingChair Elite',
+    'Kitchen Master','FitBand 5','Leather Jacket','Novel: Edge','Trail Boots','Glow Serum'];
+  const pRevs = products.map(()=>Math.round(rnd(400,1800))*1000);
+  new Chart('topProductsChart', { type:'bar', data:{
+    labels:products,
+    datasets:[{data:pRevs,backgroundColor:PALETTE,borderRadius:6,barThickness:18}]
+  }, options:{...barOpts(),indexAxis:'y',plugins:{legend:{display:false}}}});
+
+  // Channel donut
+  new Chart('channelChart', { type:'doughnut', data:{
+    labels:['Online','Mobile App','Marketplace','In-store'],
+    datasets:[{data:[50,30,15,5],backgroundColor:['#6366f1','#22d3ee','#10b981','#f59e0b'],borderWidth:0,hoverOffset:6}]
+  }, options:doughnutOpts()});
+
+  // Yearly comparison
+  const yearColors=['#6366f1','#22d3ee','#10b981','#f59e0b','#8b5cf6'];
+  new Chart('yearlyChart', { type:'line', data:{
+    labels:months,
+    datasets:YEARS.map((yr,yi)=>({
+      label:String(yr),
+      data:months.map((_,mi)=>Math.round((1_800_000+yi*400_000)*SEASONAL[mi]*rnd(.94,1.06))),
+      borderColor:yearColors[yi],backgroundColor:'transparent',tension:.4,borderWidth:2
+    }))
+  }, options:lineOpts()});
+
+  // Error type donut
+  new Chart('errorTypeChart', { type:'doughnut', data:{
+    labels:['discount_pct > 1','invalid channel','quantity ≤ 0','null sale_id','bad date'],
+    datasets:[{data:[67,33,0,0,0],backgroundColor:['#f59e0b','#ef4444','#6366f1','#22d3ee','#8b5cf6'],borderWidth:0,hoverOffset:6}]
+  }, options:doughnutOpts()});
+
+  // Variance chart
+  const varLabels = Array.from({length:14},(_,i)=>`Dec ${18+i}`);
+  new Chart('varianceChart', { type:'line', data:{
+    labels:varLabels,
+    datasets:[
+      {label:'Variance %',data:varLabels.map(()=>+rnd(0,.15).toFixed(3)),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.4,borderWidth:2},
+      {label:'Threshold 5%',data:Array(14).fill(5),borderColor:'#ef4444',borderDash:[5,5],borderWidth:1,fill:false}
+    ]
+  }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,padding:12}}},
+    scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor},max:7}}}});
+
+  // Audit log table
+  const stages=['extract','transform','load','validate_load','refresh_mart'];
+  const atbody=document.getElementById('audit-table');
+  for(let i=0;i<15;i++){
+    const d=new Date(2024,11,31-Math.floor(i/5));
+    const stage=stages[i%5];
+    const rows=(Math.round(rnd(80,120))*1000).toLocaleString();
+    const ins=(Math.round(rnd(78,119))*1000).toLocaleString();
+    const rej=stage==='extract'?Math.round(rnd(100,900)):0;
+    const dur=`${rnd(.5,22).toFixed(1)}s`;
+    const cs=Math.random().toString(36).slice(2,14)+'…';
+    atbody.innerHTML+=`<tr>
+      <td>${d.toLocaleDateString('en-GB')}</td>
+      <td><span class="badge success" style="font-family:monospace">${stage}</span></td>
+      <td><span class="badge success"><span class="badge-dot"></span>success</span></td>
+      <td>${rows}</td><td>${ins}</td><td style="color:${rej?'var(--warn)':'var(--muted)'}">${rej||'—'}</td>
+      <td>${dur}</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">${cs}</td></tr>`;
+  }
+});
+</script>
+</body>
+</html>
