@@ -1,6 +1,6 @@
 # E-commerce Sales Performance Data Pipeline
 
-![CI](https://github.com/<your-username>/ecommerce_pipeline/actions/workflows/ci.yml/badge.svg)
+
 ![Python](https://img.shields.io/badge/python-3.11-blue?logo=python)
 ![Airflow](https://img.shields.io/badge/Apache%20Airflow-2.9-017CEE?logo=apacheairflow)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)
